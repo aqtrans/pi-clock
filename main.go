@@ -88,9 +88,8 @@ func newStringTexture(s string, renderer *sdl.Renderer) *sdl.Texture {
 }
 
 // Using a given string, make a surface out of it, then create a rectangle using the surface bounds
-func rectFromString(pos string, s string) *sdl.Rect {
+func rectFromString(pos string, newSurface *sdl.Surface) *sdl.Rect {
 	var rect *sdl.Rect
-	newSurface := newStringSurface(s)
 
 	switch pos {
 	case center:
@@ -133,10 +132,6 @@ func rectFromString(pos string, s string) *sdl.Rect {
 }
 
 func run() (err error) {
-	var window *sdl.Window
-	//var surface *sdl.Surface
-	var pngImage *sdl.Surface
-	//var otherImage *sdl.Surface
 
 	if err = sdl.Init(sdl.INIT_VIDEO); err != nil {
 		log.Println(err)
@@ -151,25 +146,49 @@ func run() (err error) {
 		}
 	*/
 
-	// Create a window for us to draw the images on
-	window, renderer, err := sdl.CreateWindowAndRenderer(screenWidth, screenHeight, sdl.WINDOW_SHOWN)
+	window, err := sdl.CreateWindow("SDL Clock", 0, 0, screenWidth, screenHeight, sdl.WINDOW_SHOWN)
 	if err != nil {
-		log.Fatalln("Error creating window/renderer:", err)
+		log.Fatalln("Error creating window:", err)
 	}
-	defer window.Destroy()
+
+	renderer, err := sdl.CreateRenderer(window, -1, sdl.RENDERER_ACCELERATED+sdl.RENDERER_PRESENTVSYNC)
+	if err != nil {
+		log.Fatalln("Error creating renderer:", err)
+	}
 
 	// Load a PNG image
-	if pngImage, err = img.Load(backgroundImage); err != nil {
-		log.Println(err)
+	pngSurface, err := img.Load(backgroundImage)
+	if err != nil {
+		log.Println("Error loading background image:", err)
 		return err
 	}
 
-	imageTexture, err := renderer.CreateTextureFromSurface(pngImage)
+	imageTexture, err := renderer.CreateTextureFromSurface(pngSurface)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
-	pngImage.Free()
+	pngSurface.Free()
+
+	/// Try at combining textures
+	tempSurface := newStringSurface("TEMPERATURE: 60f")
+	textTempRect := &sdl.Rect{X: 0, Y: 0, W: 500, H: 100}
+	tempTexture := newTextureFromSurface(renderer, tempSurface)
+	tempSurface.Free()
+
+	// Create a background texture to paint the background image, static text, and eventually time onto
+	backgroundTexture, err := renderer.CreateTexture(sdl.PIXELFORMAT_RGB24, sdl.TEXTUREACCESS_TARGET, screenWidth, screenHeight)
+	if err != nil {
+		log.Fatalln("Error creating backgroundTexture:", err)
+	}
+
+	// Paint static items onto the background texture
+	// With assistance from: https://stackoverflow.com/questions/40886350/how-to-connect-multiple-textures-in-the-one-in-sdl2
+	renderer.SetRenderTarget(backgroundTexture)
+	renderer.Copy(imageTexture, nil, &sdl.Rect{X: 0, Y: 0, W: screenWidth, H: screenHeight})
+	renderer.Copy(tempTexture, nil, textTempRect)
+	renderer.SetRenderTarget(nil)
+	renderer.Present()
 
 	// Run infinite loop until user closes the window
 	running := true
@@ -179,11 +198,7 @@ func run() (err error) {
 	// Define or calculate all the rectancles used to render
 	// fullRect is the full size of the screen
 	fullRect := &sdl.Rect{X: 0, Y: 0, W: screenWidth, H: screenHeight}
-	timeRect := rectFromString(center, time.Now().Format("03:04:05PM"))
-
-	// Copy background to the full screen
-	renderer.Copy(imageTexture, nil, fullRect)
-	renderer.Present()
+	timeRect := rectFromString(center, getTimeSurface())
 
 	window.Show()
 
@@ -194,13 +209,13 @@ func run() (err error) {
 		timeTexture := getTimeTexture(renderer)
 		//tempTexture := newStringTexture("TEMPERATURE: 60f", renderer)
 
-		renderer.Copy(imageTexture, nil, fullRect)
+		renderer.Copy(backgroundTexture, nil, fullRect)
 		renderer.Copy(timeTexture, nil, timeRect)
 		//renderer.Copy(tempTexture, nil, tempRect)
 		renderer.Present()
 
 		// Destroy textures (not sure if it's needed)
-		//tempTexture.Destroy()
+		//backgroundTexture.Destroy()
 		timeTexture.Destroy()
 
 		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
