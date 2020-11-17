@@ -1,5 +1,13 @@
 package main
 
+/*
+
+Rectangle cheats:
+X = width
+Y = height
+
+*/
+
 import (
 	"flag"
 	"log"
@@ -19,36 +27,109 @@ var (
 	font            *ttf.Font
 )
 
-func getTimeSurface() *sdl.Surface {
-	fontSurface, err := font.RenderUTF8Solid(time.Now().Format("03:04:05PM"), sdl.Color{
-		R: 0,
-		G: 0,
-		B: 0,
-		A: 255,
-	})
-	if err != nil {
-		log.Fatalln("can't render font:", err)
-	}
-	return fontSurface
-}
+const (
+	upLeft      = "upperLeft"
+	upRight     = "upperRight"
+	upCenter    = "upperCenter"
+	center      = "center"
+	centerLeft  = "centerLeft"
+	centerRight = "centerRight"
+	lowerLeft   = "lowerLeft"
+	lowerRight  = "lowerRight"
+	lowerCenter = "lowerCenter"
+)
 
-func getTimeTextureFromSurface(renderer *sdl.Renderer, surface *sdl.Surface) *sdl.Texture {
-	fontText, err := renderer.CreateTextureFromSurface(surface)
-	if err != nil {
-		log.Fatalln("Error creating font texture:", err)
-	}
-	surface.Free()
-	return fontText
+// Return only a surface with the current time
+// Should only be used for calculating the clock position
+func getTimeSurface() *sdl.Surface {
+	return newStringSurface(time.Now().Format("03:04:05PM"))
 }
 
 func getTimeTexture(renderer *sdl.Renderer) *sdl.Texture {
 	surface := getTimeSurface()
 	fontText, err := renderer.CreateTextureFromSurface(surface)
 	if err != nil {
-		log.Fatalln("Error creating font texture:", err)
+		log.Fatalln("Error creating time texture:", err)
 	}
 	surface.Free()
 	return fontText
+}
+
+func newStringSurface(s string) *sdl.Surface {
+	fontSurface, err := font.RenderUTF8Solid(s, sdl.Color{
+		R: 0,
+		G: 0,
+		B: 0,
+		A: 255,
+	})
+	if err != nil {
+		log.Fatalln("Error creating string surface:", err)
+	}
+	return fontSurface
+}
+
+func newTextureFromSurface(renderer *sdl.Renderer, surface *sdl.Surface) *sdl.Texture {
+	newTexture, err := renderer.CreateTextureFromSurface(surface)
+	if err != nil {
+		log.Fatalln("Error creating texture from surface:", err)
+	}
+	surface.Free()
+	return newTexture
+}
+
+func newStringTexture(s string, renderer *sdl.Renderer) *sdl.Texture {
+	surface := newStringSurface(s)
+	stringTexture, err := renderer.CreateTextureFromSurface(surface)
+	if err != nil {
+		log.Fatalln("Error creating string texture:", err)
+	}
+	surface.Free()
+	return stringTexture
+}
+
+// Using a given string, make a surface out of it, then create a rectangle using the surface bounds
+func rectFromString(pos string, s string) *sdl.Rect {
+	var rect *sdl.Rect
+	newSurface := newStringSurface(s)
+
+	switch pos {
+	case center:
+		var screenCenterY int32 = screenHeight/2 - newSurface.H/2
+		var screenCenterX int32 = screenWidth/2 - newSurface.W/2
+		rect = &sdl.Rect{X: screenCenterX, Y: screenCenterY, W: newSurface.W, H: newSurface.H}
+	case centerLeft:
+		var screenCenterY int32 = screenHeight/2 - newSurface.H/2
+		rect = &sdl.Rect{X: 0, Y: screenCenterY, W: newSurface.W, H: newSurface.H}
+	case centerRight:
+		var screenCenterY int32 = screenHeight/2 - newSurface.H/2
+		var screenCenterX int32 = screenWidth - newSurface.W
+		rect = &sdl.Rect{X: screenCenterX, Y: screenCenterY, W: newSurface.W, H: newSurface.H}
+	case upCenter:
+		var screenCenterX int32 = screenWidth/2 - newSurface.W/2
+		rect = &sdl.Rect{X: screenCenterX, Y: 0, W: newSurface.W, H: newSurface.H}
+	case upLeft:
+		rect = &sdl.Rect{X: 0, Y: 0, W: newSurface.W, H: newSurface.H}
+	case upRight:
+		var screenCenterX int32 = screenWidth - newSurface.W
+		rect = &sdl.Rect{X: screenCenterX, Y: 0, W: newSurface.W, H: newSurface.H}
+	case lowerCenter:
+		var screenCenterX int32 = screenWidth/2 - newSurface.W/2
+		var screenCenterY int32 = screenHeight - newSurface.H
+		rect = &sdl.Rect{X: screenCenterX, Y: screenCenterY, W: newSurface.W, H: newSurface.H}
+	case lowerLeft:
+		var screenCenterY int32 = screenHeight - newSurface.H
+		rect = &sdl.Rect{X: 0, Y: screenCenterY, W: newSurface.W, H: newSurface.H}
+	case lowerRight:
+		var screenCenterX int32 = screenWidth - newSurface.W
+		var screenCenterY int32 = screenHeight - newSurface.H
+		rect = &sdl.Rect{X: screenCenterX, Y: screenCenterY, W: newSurface.W, H: newSurface.H}
+	default:
+		rect = &sdl.Rect{X: 0, Y: 0, W: newSurface.W, H: newSurface.H}
+	}
+
+	newSurface.Free()
+
+	return rect
 }
 
 func run() (err error) {
@@ -77,20 +158,6 @@ func run() (err error) {
 	}
 	defer window.Destroy()
 
-	// Initial surfaces to get size
-	timeSurface := getTimeSurface()
-
-	// Calculate perfect center, based on font and screen size
-	var screenCenterY int32 = screenHeight/2 - timeSurface.H/2
-	var screenCenterX int32 = screenWidth/2 - timeSurface.W/2
-
-	// Define sctions of the screen
-	fullRect := &sdl.Rect{X: 0, Y: 0, W: screenWidth, H: screenHeight}
-	centerRect := &sdl.Rect{X: screenCenterX, Y: screenCenterY, W: timeSurface.W, H: timeSurface.H}
-
-	// Font surface to texture
-	timeTexture := getTimeTextureFromSurface(renderer, timeSurface)
-
 	// Load a PNG image
 	if pngImage, err = img.Load(backgroundImage); err != nil {
 		log.Println(err)
@@ -104,29 +171,37 @@ func run() (err error) {
 	}
 	pngImage.Free()
 
-	// Copy background to the full screen, then text on top, to the center
-	renderer.Copy(imageTexture, nil, fullRect)
-	renderer.Copy(timeTexture, nil, centerRect)
-
-	renderer.Present()
-
-	window.Show()
-
 	// Run infinite loop until user closes the window
 	running := true
 
-	var touched bool
+	//var touched bool
+
+	// Define or calculate all the rectancles used to render
+	// fullRect is the full size of the screen
+	fullRect := &sdl.Rect{X: 0, Y: 0, W: screenWidth, H: screenHeight}
+	timeRect := rectFromString(center, time.Now().Format("03:04:05PM"))
+
+	// Copy background to the full screen
+	renderer.Copy(imageTexture, nil, fullRect)
+	renderer.Present()
+
+	window.Show()
 
 	for running {
 
 		renderer.Clear()
 
-		timeTexture = getTimeTexture(renderer)
+		timeTexture := getTimeTexture(renderer)
+		//tempTexture := newStringTexture("TEMPERATURE: 60f", renderer)
 
 		renderer.Copy(imageTexture, nil, fullRect)
-		renderer.Copy(timeTexture, nil, centerRect)
-		timeTexture.Destroy()
+		renderer.Copy(timeTexture, nil, timeRect)
+		//renderer.Copy(tempTexture, nil, tempRect)
 		renderer.Present()
+
+		// Destroy textures (not sure if it's needed)
+		//tempTexture.Destroy()
+		timeTexture.Destroy()
 
 		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
 
@@ -135,10 +210,12 @@ func run() (err error) {
 				running = false
 			case *sdl.TouchFingerEvent:
 				if t.Type == sdl.FINGERUP {
-					touched = false
+					//touched = false
 				}
 				if t.Type == sdl.FINGERMOTION {
 					//log.Println("motion detected", t.DY)
+
+					/* Unused, no touch stuff used yet, but leaving for reference:
 
 					// Calculate a rough estimate of the touch point
 					w, h := window.GetSize()
@@ -175,37 +252,8 @@ func run() (err error) {
 							os.Exit(0)
 						}
 					}
-
-					/*
-						renderer.SetDrawColor(255, 255, 255, 0)
-						err := renderer.DrawPoint(int32(xTouch), int32(yTouch))
-						if err != nil {
-							log.Fatalln("can't destroy fonttext:", err)
-						}
 					*/
 
-					/*
-						_, h := window.GetSize()
-						//log.Println("X touch:", float32(w)*t.DX)
-						//log.Println("Y touch:", float32(h)*t.DY)
-
-						// All X/Y coordinates are 'normalized', need to be multiplied by the resolution
-						if (float32(h) * t.DY) < -30.0 {
-							//log.Println("quit motion detected. quitting", t.DY)
-
-							//otherImage.BlitScaled(nil, surface, &sdl.Rect{X: 0, Y: 0, W: 1280, H: 800})
-							window.UpdateSurface()
-
-							// Slight pause before exiting
-							time.Sleep(250 * time.Millisecond)
-
-							err = window.Destroy()
-							if err != nil {
-								log.Fatalln("Error destroying:", err)
-							}
-							os.Exit(0)
-						}
-					*/
 				}
 				//log.Println("Touch", t.Type, "moved by", t.DX, t.DY, "at", t.X, t.Y)
 			// Exit on spacebar
