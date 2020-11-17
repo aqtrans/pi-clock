@@ -73,7 +73,6 @@ func newTextureFromSurface(renderer *sdl.Renderer, surface *sdl.Surface) *sdl.Te
 	if err != nil {
 		log.Fatalln("Error creating texture from surface:", err)
 	}
-	surface.Free()
 	return newTexture
 }
 
@@ -126,12 +125,11 @@ func rectFromString(pos string, newSurface *sdl.Surface) *sdl.Rect {
 		rect = &sdl.Rect{X: 0, Y: 0, W: newSurface.W, H: newSurface.H}
 	}
 
-	newSurface.Free()
-
 	return rect
 }
 
 func run() (err error) {
+	fullRect := &sdl.Rect{X: 0, Y: 0, W: screenWidth, H: screenHeight}
 
 	if err = sdl.Init(sdl.INIT_VIDEO); err != nil {
 		log.Println(err)
@@ -172,9 +170,8 @@ func run() (err error) {
 
 	/// Try at combining textures
 	tempSurface := newStringSurface("TEMPERATURE: 60f")
-	textTempRect := &sdl.Rect{X: 0, Y: 0, W: 500, H: 100}
+	textTempRect := rectFromString(lowerLeft, tempSurface)
 	tempTexture := newTextureFromSurface(renderer, tempSurface)
-	tempSurface.Free()
 
 	// Create a background texture to paint the background image, static text, and eventually time onto
 	backgroundTexture, err := renderer.CreateTexture(sdl.PIXELFORMAT_RGB24, sdl.TEXTUREACCESS_TARGET, screenWidth, screenHeight)
@@ -185,7 +182,7 @@ func run() (err error) {
 	// Paint static items onto the background texture
 	// With assistance from: https://stackoverflow.com/questions/40886350/how-to-connect-multiple-textures-in-the-one-in-sdl2
 	renderer.SetRenderTarget(backgroundTexture)
-	renderer.Copy(imageTexture, nil, &sdl.Rect{X: 0, Y: 0, W: screenWidth, H: screenHeight})
+	renderer.Copy(imageTexture, nil, fullRect)
 	renderer.Copy(tempTexture, nil, textTempRect)
 	renderer.SetRenderTarget(nil)
 	renderer.Present()
@@ -197,7 +194,7 @@ func run() (err error) {
 
 	// Define or calculate all the rectancles used to render
 	// fullRect is the full size of the screen
-	fullRect := &sdl.Rect{X: 0, Y: 0, W: screenWidth, H: screenHeight}
+
 	timeRect := rectFromString(center, getTimeSurface())
 
 	window.Show()
