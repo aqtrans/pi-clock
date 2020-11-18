@@ -87,42 +87,50 @@ func newStringTexture(s string, renderer *sdl.Renderer) *sdl.Texture {
 }
 
 // Using a given string, make a surface out of it, then create a rectangle using the surface bounds
-func rectFromString(pos string, newSurface *sdl.Surface) *sdl.Rect {
+func rectFromString(pos string, newSurface *sdl.Surface, small bool) *sdl.Rect {
 	var rect *sdl.Rect
+
+	surfaceHeight := newSurface.H
+	surfaceWidth := newSurface.W
+
+	if small {
+		surfaceHeight = surfaceHeight / 2
+		surfaceWidth = surfaceWidth / 2
+	}
 
 	switch pos {
 	case center:
-		var screenCenterY int32 = screenHeight/2 - newSurface.H/2
-		var screenCenterX int32 = screenWidth/2 - newSurface.W/2
-		rect = &sdl.Rect{X: screenCenterX, Y: screenCenterY, W: newSurface.W, H: newSurface.H}
+		var screenCenterY int32 = screenHeight/2 - surfaceHeight/2
+		var screenCenterX int32 = screenWidth/2 - surfaceWidth/2
+		rect = &sdl.Rect{X: screenCenterX, Y: screenCenterY, W: surfaceWidth, H: surfaceHeight}
 	case centerLeft:
-		var screenCenterY int32 = screenHeight/2 - newSurface.H/2
-		rect = &sdl.Rect{X: 0, Y: screenCenterY, W: newSurface.W, H: newSurface.H}
+		var screenCenterY int32 = screenHeight/2 - surfaceHeight/2
+		rect = &sdl.Rect{X: 0, Y: screenCenterY, W: surfaceWidth, H: surfaceHeight}
 	case centerRight:
-		var screenCenterY int32 = screenHeight/2 - newSurface.H/2
-		var screenCenterX int32 = screenWidth - newSurface.W
-		rect = &sdl.Rect{X: screenCenterX, Y: screenCenterY, W: newSurface.W, H: newSurface.H}
+		var screenCenterY int32 = screenHeight/2 - surfaceHeight/2
+		var screenCenterX int32 = screenWidth - surfaceWidth
+		rect = &sdl.Rect{X: screenCenterX, Y: screenCenterY, W: surfaceWidth, H: surfaceHeight}
 	case upCenter:
-		var screenCenterX int32 = screenWidth/2 - newSurface.W/2
-		rect = &sdl.Rect{X: screenCenterX, Y: 0, W: newSurface.W, H: newSurface.H}
+		var screenCenterX int32 = screenWidth/2 - surfaceWidth/2
+		rect = &sdl.Rect{X: screenCenterX, Y: 0, W: surfaceWidth, H: surfaceHeight}
 	case upLeft:
-		rect = &sdl.Rect{X: 0, Y: 0, W: newSurface.W, H: newSurface.H}
+		rect = &sdl.Rect{X: 0, Y: 0, W: surfaceWidth, H: surfaceHeight}
 	case upRight:
-		var screenCenterX int32 = screenWidth - newSurface.W
-		rect = &sdl.Rect{X: screenCenterX, Y: 0, W: newSurface.W, H: newSurface.H}
+		var screenCenterX int32 = screenWidth - surfaceWidth
+		rect = &sdl.Rect{X: screenCenterX, Y: 0, W: surfaceWidth, H: surfaceHeight}
 	case lowerCenter:
-		var screenCenterX int32 = screenWidth/2 - newSurface.W/2
-		var screenCenterY int32 = screenHeight - newSurface.H
-		rect = &sdl.Rect{X: screenCenterX, Y: screenCenterY, W: newSurface.W, H: newSurface.H}
+		var screenCenterX int32 = screenWidth/2 - surfaceWidth/2
+		var screenCenterY int32 = screenHeight - surfaceHeight
+		rect = &sdl.Rect{X: screenCenterX, Y: screenCenterY, W: surfaceWidth, H: surfaceHeight}
 	case lowerLeft:
-		var screenCenterY int32 = screenHeight - newSurface.H
-		rect = &sdl.Rect{X: 0, Y: screenCenterY, W: newSurface.W, H: newSurface.H}
+		var screenCenterY int32 = screenHeight - surfaceHeight
+		rect = &sdl.Rect{X: 0, Y: screenCenterY, W: surfaceWidth, H: surfaceHeight}
 	case lowerRight:
-		var screenCenterX int32 = screenWidth - newSurface.W
-		var screenCenterY int32 = screenHeight - newSurface.H
-		rect = &sdl.Rect{X: screenCenterX, Y: screenCenterY, W: newSurface.W, H: newSurface.H}
+		var screenCenterX int32 = screenWidth - surfaceWidth
+		var screenCenterY int32 = screenHeight - surfaceHeight
+		rect = &sdl.Rect{X: screenCenterX, Y: screenCenterY, W: surfaceWidth, H: surfaceHeight}
 	default:
-		rect = &sdl.Rect{X: 0, Y: 0, W: newSurface.W, H: newSurface.H}
+		rect = &sdl.Rect{X: 0, Y: 0, W: surfaceWidth, H: surfaceHeight}
 	}
 
 	return rect
@@ -170,7 +178,7 @@ func run() (err error) {
 
 	/// Try at combining textures
 	tempSurface := newStringSurface("TEMPERATURE: 60f")
-	textTempRect := rectFromString(lowerLeft, tempSurface)
+	textTempRect := rectFromString(lowerLeft, tempSurface, true)
 	tempTexture := newTextureFromSurface(renderer, tempSurface)
 
 	// Create a background texture to paint the background image, static text, and eventually time onto
@@ -195,7 +203,7 @@ func run() (err error) {
 	// Define or calculate all the rectancles used to render
 	// fullRect is the full size of the screen
 
-	timeRect := rectFromString(center, getTimeSurface())
+	timeRect := rectFromString(center, getTimeSurface(), false)
 
 	window.Show()
 
