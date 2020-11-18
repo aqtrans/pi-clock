@@ -23,8 +23,14 @@ var (
 	backgroundImage string
 	fontFile        string
 	screenHeight    int32 = 480
-	screenWidth     int32 = 640
+	screenWidth     int32 = 800
 	font            *ttf.Font
+	fontColor       = sdl.Color{
+		R: 255,
+		G: 255,
+		B: 255,
+		A: 255,
+	}
 )
 
 const (
@@ -56,12 +62,7 @@ func getTimeTexture(renderer *sdl.Renderer) *sdl.Texture {
 }
 
 func newStringSurface(s string) *sdl.Surface {
-	fontSurface, err := font.RenderUTF8Solid(s, sdl.Color{
-		R: 0,
-		G: 0,
-		B: 0,
-		A: 255,
-	})
+	fontSurface, err := font.RenderUTF8Solid(s, fontColor)
 	if err != nil {
 		log.Fatalln("Error creating string surface:", err)
 	}
@@ -152,12 +153,12 @@ func run() (err error) {
 		}
 	*/
 
-	window, err := sdl.CreateWindow("SDL Clock", 0, 0, screenWidth, screenHeight, sdl.WINDOW_SHOWN)
+	window, err := sdl.CreateWindow("SDL Clock", 0, 0, screenWidth, screenHeight, sdl.WINDOW_FULLSCREEN)
 	if err != nil {
 		log.Fatalln("Error creating window:", err)
 	}
 
-	renderer, err := sdl.CreateRenderer(window, -1, sdl.RENDERER_ACCELERATED+sdl.RENDERER_PRESENTVSYNC)
+	renderer, err := sdl.CreateRenderer(window, -1, sdl.RENDERER_ACCELERATED|sdl.RENDERER_PRESENTVSYNC)
 	if err != nil {
 		log.Fatalln("Error creating renderer:", err)
 	}
