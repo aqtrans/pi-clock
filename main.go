@@ -19,6 +19,8 @@ import (
 	"strconv"
 	"time"
 
+	_ "net/http/pprof"
+
 	"github.com/veandco/go-sdl2/img"
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
@@ -49,6 +51,8 @@ var (
 	statRect          *sdl.Rect
 	daysSinceTexture  *sdl.Texture
 	daysSinceRect     *sdl.Rect
+	timeTexture       *sdl.Texture
+	timeRect          *sdl.Rect
 )
 
 const (
@@ -69,14 +73,12 @@ func getTimeSurface() *sdl.Surface {
 	return newStringSurface(time.Now().Format("03:04:05PM"))
 }
 
-func getTimeTexture(renderer *sdl.Renderer) *sdl.Texture {
-	surface := getTimeSurface()
-	fontText, err := renderer.CreateTextureFromSurface(surface)
-	if err != nil {
-		log.Fatalln("Error creating time texture:", err)
-	}
-	surface.Free()
-	return fontText
+func getTimeTexture(renderer *sdl.Renderer) {
+	timeSurface := newStringSurface(time.Now().Format("03:04:05PM"))
+	timeRect = rectFromString(center, timeSurface, "large")
+	timeTexture = newTextureFromSurface(renderer, timeSurface)
+	timeSurface.Free()
+	//return timeT, timeRect
 }
 
 func newStringSurface(s string) *sdl.Surface {
@@ -160,19 +162,19 @@ func rectFromString(pos string, newSurface *sdl.Surface, size string) *sdl.Rect 
 	return rect
 }
 
-func getSenseHatTexture(renderer *sdl.Renderer) (*sdl.Texture, *sdl.Rect) {
+func getSenseHatTexture(renderer *sdl.Renderer) {
 	var senseData senseHatResponse
 	resp, err := http.Get("http://raspberrypi.lan:8000/")
 	if err != nil {
 		log.Println("Error getting sense hat info:", err)
-		return nil, nil
+		//return nil, nil
 	}
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(body, &senseData)
 	if err != nil {
 		log.Println("Error unmarshaling sense hat JSON:", err)
-		return nil, nil
+		//return nil, nil
 	}
 
 	senseSurface := newStringSurface(`
@@ -180,13 +182,13 @@ Temperature: ` + senseData.Temperature.String() + `
 Pressure: ` + senseData.Pressure.String() + `
 Humidity: ` + senseData.Humidity.String() + `%
 	`)
-	senseR := rectFromString(upLeft, senseSurface, "small")
-	senseT := newTextureFromSurface(renderer, senseSurface)
+	senseRect = rectFromString(upLeft, senseSurface, "small")
+	senseHatTexture = newTextureFromSurface(renderer, senseSurface)
 	senseSurface.Free()
-	return senseT, senseR
+	//return senseT, senseR
 }
 
-func getStatTexture(renderer *sdl.Renderer) (*sdl.Texture, *sdl.Rect) {
+func getStatTexture(renderer *sdl.Renderer) {
 	var ram runtime.MemStats
 	runtime.ReadMemStats(&ram)
 
@@ -194,10 +196,10 @@ func getStatTexture(renderer *sdl.Renderer) (*sdl.Texture, *sdl.Rect) {
 Allocated: ` + strconv.FormatUint(bToMb(ram.Alloc), 10) + `MB
 System: ` + strconv.FormatUint(bToMb(ram.Sys), 10) + `MB
 	`)
-	ramR := rectFromString(upRight, ramSurface, "small")
-	ramT := newTextureFromSurface(renderer, ramSurface)
+	statRect = rectFromString(upRight, ramSurface, "small")
+	statTexture = newTextureFromSurface(renderer, ramSurface)
 	ramSurface.Free()
-	return ramT, ramR
+	//return ramT, ramR
 }
 
 func bToMb(b uint64) uint64 {
@@ -284,9 +286,11 @@ func run() int {
 	// Define or calculate all the rectancles used to render
 	// fullRect is the full size of the screen
 
-	timeSurface := getTimeSurface()
-	timeRect := rectFromString(center, timeSurface, "large")
-	timeSurface.Free()
+	/*
+		timeSurface := getTimeSurface()
+		timeRect = rectFromString(center, timeSurface, "large")
+		timeSurface.Free()
+	*/
 
 	defer func() {
 		sdl.Do(func() {
@@ -316,6 +320,8 @@ func run() int {
 
 	done := make(chan bool)
 
+	var timerStarted bool
+
 	for running {
 
 		//timerM.Lock()
@@ -323,7 +329,8 @@ func run() int {
 		sdl.Do(func() {
 			renderer.Clear()
 
-			timeTexture := getTimeTexture(renderer)
+			timeTexture.Destroy()
+			getTimeTexture(renderer)
 
 			renderer.Copy(backgroundTexture, nil, fullRect)
 			renderer.Copy(timeTexture, nil, timeRect)
@@ -332,30 +339,33 @@ func run() int {
 			renderer.Copy(daysSinceTexture, nil, daysSinceRect)
 
 			// Destroy textures (not sure if it's needed)
-			timeTexture.Destroy()
+			//timeTexture.Destroy()
 			//newTexture.Destroy()
 
 		})
 
-		go func() {
-			for {
-				select {
-				case <-done:
-					return
-				case <-senseHatTimer.C:
-					sdl.Do(func() {
-						senseHatTexture.Destroy()
-						senseHatTexture, senseRect = getSenseHatTexture(renderer)
+		if !timerStarted {
+			timerStarted = true
+			go func() {
+				for {
+					select {
+					case <-done:
+						return
+					case <-senseHatTimer.C:
+						sdl.Do(func() {
+							senseHatTexture.Destroy()
+							getSenseHatTexture(renderer)
 
-						statTexture.Destroy()
-						statTexture, statRect = getStatTexture(renderer)
+							statTexture.Destroy()
+							getStatTexture(renderer)
 
-						daysSinceTexture.Destroy()
-						daysSinceTexture, daysSinceRect = getDaysSinceTexture(renderer)
-					})
+							daysSinceTexture.Destroy()
+							getDaysSinceTexture(renderer)
+						})
+					}
 				}
-			}
-		}()
+			}()
+		}
 
 		sdl.Do(func() {
 			renderer.Present()
@@ -382,6 +392,10 @@ func main() {
 	if err != nil {
 		log.Fatalln("can't open font:", err)
 	}
+
+	go func() {
+		http.ListenAndServe("0.0.0.0:8080", nil)
+	}()
 
 	var exitcode int
 	sdl.Main(func() {
