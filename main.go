@@ -10,8 +10,10 @@ Y = height
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/veandco/go-sdl2/img"
@@ -143,14 +145,24 @@ func rectFromString(pos string, newSurface *sdl.Surface, size string) *sdl.Rect 
 	return rect
 }
 
-func run() (err error) {
+func run() int {
+	var window *sdl.Window
+	var renderer *sdl.Renderer
+	var backgroundTexture *sdl.Texture
+	var err error
+
 	fullRect := &sdl.Rect{X: 0, Y: 0, W: screenWidth, H: screenHeight}
 
-	if err = sdl.Init(sdl.INIT_VIDEO); err != nil {
+	if err := sdl.Init(sdl.INIT_VIDEO); err != nil {
 		log.Println(err)
-		return
+		return 1
 	}
-	defer sdl.Quit()
+
+	defer func() {
+		sdl.Do(func() {
+			sdl.Quit()
+		})
+	}()
 
 	/*
 		displayRect, err := sdl.GetDisplayBounds(0)
@@ -159,48 +171,55 @@ func run() (err error) {
 		}
 	*/
 
-	window, err := sdl.CreateWindow("SDL Clock", 0, 0, screenWidth, screenHeight, sdl.WINDOW_FULLSCREEN)
+	sdl.Do(func() {
+		window, err = sdl.CreateWindow("SDL Clock", 0, 0, screenWidth, screenHeight, sdl.WINDOW_FULLSCREEN)
+
+	})
+
 	if err != nil {
-		log.Fatalln("Error creating window:", err)
+		log.Println("Error creating window:", err)
+		return 1
 	}
 
-	renderer, err := sdl.CreateRenderer(window, -1, 0)
+	sdl.Do(func() {
+		renderer, err = sdl.CreateRenderer(window, -1, 0)
+
+	})
+
 	if err != nil {
-		log.Fatalln("Error creating renderer:", err)
+		log.Println("Error creating renderer:", err)
+		return 1
 	}
 
-	// Load a PNG image
-	pngSurface, err := img.Load(backgroundImage)
+	sdl.Do(func() {
+		var pngSurface *sdl.Surface
+		var imageTexture *sdl.Texture
+
+		pngSurface, err = img.Load(backgroundImage)
+		imageTexture, err = renderer.CreateTextureFromSurface(pngSurface)
+		pngSurface.Free()
+
+		/// Try at combining textures
+		tempSurface := newStringSurface("TEMPERATURE: 60f")
+		textTempRect := rectFromString(lowerLeft, tempSurface, "small")
+		tempTexture := newTextureFromSurface(renderer, tempSurface)
+
+		// Create a background texture to paint the background image, static text, and eventually time onto
+		backgroundTexture, err = renderer.CreateTexture(sdl.PIXELFORMAT_RGB24, sdl.TEXTUREACCESS_TARGET, screenWidth, screenHeight)
+
+		// Paint static items onto the background texture
+		// With assistance from: https://stackoverflow.com/questions/40886350/how-to-connect-multiple-textures-in-the-one-in-sdl2
+		renderer.SetRenderTarget(backgroundTexture)
+		renderer.Copy(imageTexture, nil, fullRect)
+		renderer.Copy(tempTexture, nil, textTempRect)
+		renderer.SetRenderTarget(nil)
+		renderer.Present()
+	})
+
 	if err != nil {
-		log.Println("Error loading background image:", err)
-		return err
+		log.Println("Error creating backgroundTexture:", err)
+		return 1
 	}
-
-	imageTexture, err := renderer.CreateTextureFromSurface(pngSurface)
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-	pngSurface.Free()
-
-	/// Try at combining textures
-	tempSurface := newStringSurface("TEMPERATURE: 60f")
-	textTempRect := rectFromString(lowerLeft, tempSurface, "small")
-	tempTexture := newTextureFromSurface(renderer, tempSurface)
-
-	// Create a background texture to paint the background image, static text, and eventually time onto
-	backgroundTexture, err = renderer.CreateTexture(sdl.PIXELFORMAT_RGB24, sdl.TEXTUREACCESS_TARGET, screenWidth, screenHeight)
-	if err != nil {
-		log.Fatalln("Error creating backgroundTexture:", err)
-	}
-
-	// Paint static items onto the background texture
-	// With assistance from: https://stackoverflow.com/questions/40886350/how-to-connect-multiple-textures-in-the-one-in-sdl2
-	renderer.SetRenderTarget(backgroundTexture)
-	renderer.Copy(imageTexture, nil, fullRect)
-	renderer.Copy(tempTexture, nil, textTempRect)
-	renderer.SetRenderTarget(nil)
-	renderer.Present()
 
 	// Run infinite loop until user closes the window
 	running := true
@@ -212,30 +231,68 @@ func run() (err error) {
 
 	timeRect := rectFromString(center, getTimeSurface(), "large")
 
-	window.Show()
+	defer func() {
+		sdl.Do(func() {
+			renderer.Destroy()
+		})
+	}()
 
-	sdl.ShowCursor(sdl.DISABLE)
+	sdl.Do(func() {
+		window.Show()
+		sdl.ShowCursor(sdl.DISABLE)
+	})
+
+	senseHatTimer := time.NewTicker(5 * time.Second)
+	//var timerM sync.Mutex
+
+	//omg := "yeah"
+	newSurface := newStringSurface(strconv.Itoa(int(time.Now().Unix())))
+	newRect := rectFromString(lowerRight, newSurface, "small")
+	newTexture := newTextureFromSurface(renderer, newSurface)
+
+	done := make(chan bool)
 
 	for running {
 
-		renderer.Clear()
+		//timerM.Lock()
 
-		timeTexture := getTimeTexture(renderer)
-		//tempTexture := newStringTexture("TEMPERATURE: 60f", renderer)
+		sdl.Do(func() {
+			renderer.Clear()
 
-		renderer.Copy(backgroundTexture, nil, fullRect)
-		renderer.Copy(timeTexture, nil, timeRect)
-		//renderer.Copy(tempTexture, nil, tempRect)
-		renderer.Present()
+			timeTexture := getTimeTexture(renderer)
 
-		// Destroy textures (not sure if it's needed)
-		//backgroundTexture.Destroy()
-		timeTexture.Destroy()
+			renderer.Copy(backgroundTexture, nil, fullRect)
+			renderer.Copy(timeTexture, nil, timeRect)
+			renderer.Copy(newTexture, nil, newRect)
 
-		sdl.Delay(100)
+			// Destroy textures (not sure if it's needed)
+			timeTexture.Destroy()
+			//newTexture.Destroy()
+
+		})
+
+		go func() {
+			for {
+				select {
+				case <-done:
+					return
+				case t := <-senseHatTimer.C:
+					sdl.Do(func() {
+						newTexture = newStringTexture(strconv.Itoa(int(t.Unix())), renderer)
+					})
+					fmt.Println("Tick at", t)
+
+				}
+			}
+		}()
+
+		sdl.Do(func() {
+			renderer.Present()
+			sdl.Delay(100)
+		})
 	}
 
-	return
+	return 0
 }
 
 func main() {
@@ -255,8 +312,10 @@ func main() {
 		log.Fatalln("can't open font:", err)
 	}
 
-	if err := run(); err != nil {
-		log.Println(err)
-		os.Exit(1)
-	}
+	var exitcode int
+	sdl.Main(func() {
+		exitcode = run()
+	})
+
+	os.Exit(exitcode)
 }
