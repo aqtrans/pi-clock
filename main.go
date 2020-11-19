@@ -47,6 +47,8 @@ var (
 	senseRect         *sdl.Rect
 	statTexture       *sdl.Texture
 	statRect          *sdl.Rect
+	daysSinceTexture  *sdl.Texture
+	daysSinceRect     *sdl.Rect
 )
 
 const (
@@ -78,7 +80,7 @@ func getTimeTexture(renderer *sdl.Renderer) *sdl.Texture {
 }
 
 func newStringSurface(s string) *sdl.Surface {
-	fontSurface, err := font.RenderUTF8BlendedWrapped(s, fontColor, int(screenWidth))
+	fontSurface, err := font.RenderUTF8BlendedWrapped(s, fontColor, 1000)
 	if err != nil {
 		log.Fatalln("Error creating string surface:", err)
 	}
@@ -138,7 +140,7 @@ func rectFromString(pos string, newSurface *sdl.Surface, size string) *sdl.Rect 
 	case upLeft:
 		rect = &sdl.Rect{X: 0, Y: 0, W: surfaceWidth, H: surfaceHeight}
 	case upRight:
-		var screenCenterX int32 = screenWidth - surfaceWidth
+		var screenCenterX int32 = screenWidth - surfaceWidth/2
 		rect = &sdl.Rect{X: screenCenterX, Y: 0, W: surfaceWidth, H: surfaceHeight}
 	case lowerCenter:
 		var screenCenterX int32 = screenWidth/2 - surfaceWidth/2
@@ -189,8 +191,8 @@ func getStatTexture(renderer *sdl.Renderer) (*sdl.Texture, *sdl.Rect) {
 	runtime.ReadMemStats(&ram)
 
 	ramSurface := newStringSurface(`
-Allocated: ` + strconv.FormatUint(bToMb(ram.Alloc), 10) + `
-System: ` + strconv.FormatUint(bToMb(ram.Sys), 10) + `
+Allocated: ` + strconv.FormatUint(bToMb(ram.Alloc), 10) + `MB
+System: ` + strconv.FormatUint(bToMb(ram.Sys), 10) + `MB
 	`)
 	ramR := rectFromString(upRight, ramSurface, "small")
 	ramT := newTextureFromSurface(renderer, ramSurface)
@@ -200,6 +202,16 @@ System: ` + strconv.FormatUint(bToMb(ram.Sys), 10) + `
 
 func bToMb(b uint64) uint64 {
 	return b / 1024 / 1024
+}
+
+func getDaysSinceTexture(renderer *sdl.Renderer) (*sdl.Texture, *sdl.Rect) {
+	originalDate := time.Date(2019, time.October, 10, 11, 59, 0, 0, time.Local)
+	daysSince := strconv.FormatFloat(time.Since(originalDate).Round(time.Hour).Hours()/24, 'f', 0, 64)
+	daysSurface := newStringSurface(`Days Since Last Seizure:` + daysSince)
+	daysR := rectFromString(lowerCenter, daysSurface, "small")
+	daysT := newTextureFromSurface(renderer, daysSurface)
+	daysSurface.Free()
+	return daysT, daysR
 }
 
 func run() int {
@@ -317,6 +329,7 @@ func run() int {
 			renderer.Copy(timeTexture, nil, timeRect)
 			renderer.Copy(senseHatTexture, nil, senseRect)
 			renderer.Copy(statTexture, nil, statRect)
+			renderer.Copy(daysSinceTexture, nil, daysSinceRect)
 
 			// Destroy textures (not sure if it's needed)
 			timeTexture.Destroy()
@@ -331,13 +344,15 @@ func run() int {
 					return
 				case <-senseHatTimer.C:
 					sdl.Do(func() {
-						//newTexture = newStringTexture(strconv.Itoa(int(t.Unix())), renderer)
 						senseHatTexture.Destroy()
 						senseHatTexture, senseRect = getSenseHatTexture(renderer)
+
 						statTexture.Destroy()
 						statTexture, statRect = getStatTexture(renderer)
+
+						daysSinceTexture.Destroy()
+						daysSinceTexture, daysSinceRect = getDaysSinceTexture(renderer)
 					})
-					//fmt.Println("Tick at", t)
 				}
 			}
 		}()
