@@ -31,6 +31,7 @@ var (
 		B: 255,
 		A: 255,
 	}
+	backgroundTexture *sdl.Texture
 )
 
 const (
@@ -158,7 +159,7 @@ func run() (err error) {
 		log.Fatalln("Error creating window:", err)
 	}
 
-	renderer, err := sdl.CreateRenderer(window, -1, sdl.RENDERER_ACCELERATED|sdl.RENDERER_PRESENTVSYNC)
+	renderer, err := sdl.CreateRenderer(window, -1, 0)
 	if err != nil {
 		log.Fatalln("Error creating renderer:", err)
 	}
@@ -183,7 +184,7 @@ func run() (err error) {
 	tempTexture := newTextureFromSurface(renderer, tempSurface)
 
 	// Create a background texture to paint the background image, static text, and eventually time onto
-	backgroundTexture, err := renderer.CreateTexture(sdl.PIXELFORMAT_RGB24, sdl.TEXTUREACCESS_TARGET, screenWidth, screenHeight)
+	backgroundTexture, err = renderer.CreateTexture(sdl.PIXELFORMAT_RGB24, sdl.TEXTUREACCESS_TARGET, screenWidth, screenHeight)
 	if err != nil {
 		log.Fatalln("Error creating backgroundTexture:", err)
 	}
@@ -208,6 +209,8 @@ func run() (err error) {
 
 	window.Show()
 
+	sdl.ShowCursor(sdl.DISABLE)
+
 	for running {
 
 		renderer.Clear()
@@ -224,77 +227,7 @@ func run() (err error) {
 		//backgroundTexture.Destroy()
 		timeTexture.Destroy()
 
-		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
-
-			switch t := event.(type) {
-			case *sdl.QuitEvent:
-				running = false
-			case *sdl.TouchFingerEvent:
-				if t.Type == sdl.FINGERUP {
-					//touched = false
-				}
-				if t.Type == sdl.FINGERMOTION {
-					//log.Println("motion detected", t.DY)
-
-					/* Unused, no touch stuff used yet, but leaving for reference:
-
-					// Calculate a rough estimate of the touch point
-					w, h := window.GetSize()
-					xTouch := float32(w) * t.X
-					yTouch := float32(h) * t.Y
-					touchRect := &sdl.Rect{X: int32(xTouch), Y: int32(yTouch), W: 1, H: 1}
-
-					// Check if our touch intersects with the unlock button
-					if touchRect.HasIntersection(centerRect) {
-
-						// Set this to true so the next check passes
-						touched = true
-					}
-
-					// If unlock button was touched before and is being dragged upwards, perform the dragging
-					if touched && float32(h)*t.DY < 0 {
-						//log.Println("being dragged")
-						//log.Println(textY)
-
-						var textY int32 = int32(yTouch)
-						touched = true
-
-						// Once dragged halfway up, exit
-						if textY < (screenHeight / 2) {
-							err = renderer.Destroy()
-							if err != nil {
-								log.Fatalln("Error destroying renderer:", err)
-							}
-
-							err = window.Destroy()
-							if err != nil {
-								log.Fatalln("Error destroying window:", err)
-							}
-							os.Exit(0)
-						}
-					}
-					*/
-
-				}
-				//log.Println("Touch", t.Type, "moved by", t.DX, t.DY, "at", t.X, t.Y)
-			// Exit on spacebar
-			case *sdl.KeyboardEvent:
-				if t.Type == sdl.KEYUP && t.Keysym.Sym == sdl.GetKeyFromName("Space") {
-					err = renderer.Destroy()
-					if err != nil {
-						log.Fatalln("Error destroying renderer:", err)
-					}
-
-					err = window.Destroy()
-					if err != nil {
-						log.Fatalln("Error destroying window:", err)
-					}
-					os.Exit(0)
-				}
-			}
-		}
-
-		sdl.Delay(16)
+		sdl.Delay(100)
 	}
 
 	return
