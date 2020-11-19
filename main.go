@@ -89,13 +89,18 @@ func newStringTexture(s string, renderer *sdl.Renderer) *sdl.Texture {
 }
 
 // Using a given string, make a surface out of it, then create a rectangle using the surface bounds
-func rectFromString(pos string, newSurface *sdl.Surface, small bool) *sdl.Rect {
+func rectFromString(pos string, newSurface *sdl.Surface, size string) *sdl.Rect {
 	var rect *sdl.Rect
 
 	surfaceHeight := newSurface.H
 	surfaceWidth := newSurface.W
 
-	if small {
+	if size == "large" {
+		surfaceHeight = surfaceHeight * 2
+		surfaceWidth = surfaceWidth * 2
+	}
+
+	if size == "small" {
 		surfaceHeight = surfaceHeight / 2
 		surfaceWidth = surfaceWidth / 2
 	}
@@ -180,7 +185,7 @@ func run() (err error) {
 
 	/// Try at combining textures
 	tempSurface := newStringSurface("TEMPERATURE: 60f")
-	textTempRect := rectFromString(lowerLeft, tempSurface, true)
+	textTempRect := rectFromString(lowerLeft, tempSurface, "small")
 	tempTexture := newTextureFromSurface(renderer, tempSurface)
 
 	// Create a background texture to paint the background image, static text, and eventually time onto
@@ -205,7 +210,7 @@ func run() (err error) {
 	// Define or calculate all the rectancles used to render
 	// fullRect is the full size of the screen
 
-	timeRect := rectFromString(center, getTimeSurface(), false)
+	timeRect := rectFromString(center, getTimeSurface(), "large")
 
 	window.Show()
 
