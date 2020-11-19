@@ -9,17 +9,24 @@ Y = height
 */
 
 import (
+	"encoding/json"
 	"flag"
-	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/veandco/go-sdl2/img"
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/ttf"
 )
+
+type senseHatResponse struct {
+	Temperature json.Number `json:"temperature"`
+	Pressure    json.Number `json:"pressure"`
+	Humidity    json.Number `json:"humidity"`
+}
 
 var (
 	backgroundImage string
@@ -34,6 +41,8 @@ var (
 		A: 255,
 	}
 	backgroundTexture *sdl.Texture
+	senseHatTexture   *sdl.Texture
+	senseRect         *sdl.Rect
 )
 
 const (
@@ -65,7 +74,7 @@ func getTimeTexture(renderer *sdl.Renderer) *sdl.Texture {
 }
 
 func newStringSurface(s string) *sdl.Surface {
-	fontSurface, err := font.RenderUTF8Solid(s, fontColor)
+	fontSurface, err := font.RenderUTF8BlendedWrapped(s, fontColor, int(screenWidth))
 	if err != nil {
 		log.Fatalln("Error creating string surface:", err)
 	}
@@ -143,6 +152,31 @@ func rectFromString(pos string, newSurface *sdl.Surface, size string) *sdl.Rect 
 	}
 
 	return rect
+}
+
+func getSenseHatTexture(renderer *sdl.Renderer) (*sdl.Texture, *sdl.Rect) {
+	var senseData senseHatResponse
+	resp, err := http.Get("http://raspberrypi.lan:8000/")
+	if err != nil {
+		log.Println("Error getting sense hat info:", err)
+		return nil, nil
+	}
+	defer resp.Body.Close()
+	body, _ := ioutil.ReadAll(resp.Body)
+	err = json.Unmarshal(body, &senseData)
+	if err != nil {
+		log.Println("Error unmarshaling sense hat JSON:", err)
+		return nil, nil
+	}
+
+	senseSurface := newStringSurface(`
+Temperature: ` + senseData.Temperature.String() + `
+Pressure: ` + senseData.Pressure.String() + `
+Humidity: ` + senseData.Humidity.String() + `%
+	`)
+	senseR := rectFromString(upLeft, senseSurface, "small")
+	senseT := newTextureFromSurface(renderer, senseSurface)
+	return senseT, senseR
 }
 
 func run() int {
@@ -246,9 +280,16 @@ func run() int {
 	//var timerM sync.Mutex
 
 	//omg := "yeah"
-	newSurface := newStringSurface(strconv.Itoa(int(time.Now().Unix())))
-	newRect := rectFromString(lowerRight, newSurface, "small")
-	newTexture := newTextureFromSurface(renderer, newSurface)
+
+	/*
+		var newTexture *sdl.Texture
+		var newSurface *sdl.Surface
+		sdl.Do(func() {
+			newSurface = newStringSurface(strconv.Itoa(int(time.Now().Unix())))
+			newTexture = newTextureFromSurface(renderer, newSurface)
+		})
+		newRect := rectFromString(lowerRight, newSurface, "small")
+	*/
 
 	done := make(chan bool)
 
@@ -263,7 +304,7 @@ func run() int {
 
 			renderer.Copy(backgroundTexture, nil, fullRect)
 			renderer.Copy(timeTexture, nil, timeRect)
-			renderer.Copy(newTexture, nil, newRect)
+			renderer.Copy(senseHatTexture, nil, senseRect)
 
 			// Destroy textures (not sure if it's needed)
 			timeTexture.Destroy()
@@ -276,12 +317,12 @@ func run() int {
 				select {
 				case <-done:
 					return
-				case t := <-senseHatTimer.C:
+				case <-senseHatTimer.C:
 					sdl.Do(func() {
-						newTexture = newStringTexture(strconv.Itoa(int(t.Unix())), renderer)
+						//newTexture = newStringTexture(strconv.Itoa(int(t.Unix())), renderer)
+						senseHatTexture, senseRect = getSenseHatTexture(renderer)
 					})
-					fmt.Println("Tick at", t)
-
+					//fmt.Println("Tick at", t)
 				}
 			}
 		}()
