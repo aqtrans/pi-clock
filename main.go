@@ -176,6 +176,7 @@ Humidity: ` + senseData.Humidity.String() + `%
 	`)
 	senseR := rectFromString(upLeft, senseSurface, "small")
 	senseT := newTextureFromSurface(renderer, senseSurface)
+	senseSurface.Free()
 	return senseT, senseR
 }
 
@@ -227,26 +228,12 @@ func run() int {
 
 	sdl.Do(func() {
 		var pngSurface *sdl.Surface
-		var imageTexture *sdl.Texture
 
 		pngSurface, err = img.Load(backgroundImage)
-		imageTexture, err = renderer.CreateTextureFromSurface(pngSurface)
+		backgroundTexture, err = renderer.CreateTextureFromSurface(pngSurface)
 		pngSurface.Free()
 
-		/// Try at combining textures
-		tempSurface := newStringSurface("TEMPERATURE: 60f")
-		textTempRect := rectFromString(lowerLeft, tempSurface, "small")
-		tempTexture := newTextureFromSurface(renderer, tempSurface)
-
-		// Create a background texture to paint the background image, static text, and eventually time onto
-		backgroundTexture, err = renderer.CreateTexture(sdl.PIXELFORMAT_RGB24, sdl.TEXTUREACCESS_TARGET, screenWidth, screenHeight)
-
-		// Paint static items onto the background texture
-		// With assistance from: https://stackoverflow.com/questions/40886350/how-to-connect-multiple-textures-in-the-one-in-sdl2
-		renderer.SetRenderTarget(backgroundTexture)
-		renderer.Copy(imageTexture, nil, fullRect)
-		renderer.Copy(tempTexture, nil, textTempRect)
-		renderer.SetRenderTarget(nil)
+		renderer.Copy(backgroundTexture, nil, fullRect)
 		renderer.Present()
 	})
 
@@ -263,7 +250,9 @@ func run() int {
 	// Define or calculate all the rectancles used to render
 	// fullRect is the full size of the screen
 
-	timeRect := rectFromString(center, getTimeSurface(), "large")
+	timeSurface := getTimeSurface()
+	timeRect := rectFromString(center, timeSurface, "large")
+	timeSurface.Free()
 
 	defer func() {
 		sdl.Do(func() {
@@ -320,6 +309,7 @@ func run() int {
 				case <-senseHatTimer.C:
 					sdl.Do(func() {
 						//newTexture = newStringTexture(strconv.Itoa(int(t.Unix())), renderer)
+						senseHatTexture.Destroy()
 						senseHatTexture, senseRect = getSenseHatTexture(renderer)
 					})
 					//fmt.Println("Tick at", t)
