@@ -15,6 +15,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"runtime"
+	"strconv"
 	"time"
 
 	"github.com/veandco/go-sdl2/img"
@@ -43,6 +45,8 @@ var (
 	backgroundTexture *sdl.Texture
 	senseHatTexture   *sdl.Texture
 	senseRect         *sdl.Rect
+	statTexture       *sdl.Texture
+	statRect          *sdl.Rect
 )
 
 const (
@@ -180,6 +184,24 @@ Humidity: ` + senseData.Humidity.String() + `%
 	return senseT, senseR
 }
 
+func getStatTexture(renderer *sdl.Renderer) (*sdl.Texture, *sdl.Rect) {
+	var ram runtime.MemStats
+	runtime.ReadMemStats(&ram)
+
+	ramSurface := newStringSurface(`
+Allocated: ` + strconv.FormatUint(bToMb(ram.Alloc), 10) + `
+System: ` + strconv.FormatUint(bToMb(ram.Sys), 10) + `
+	`)
+	ramR := rectFromString(upRight, ramSurface, "small")
+	ramT := newTextureFromSurface(renderer, ramSurface)
+	ramSurface.Free()
+	return ramT, ramR
+}
+
+func bToMb(b uint64) uint64 {
+	return b / 1024 / 1024
+}
+
 func run() int {
 	var window *sdl.Window
 	var renderer *sdl.Renderer
@@ -294,6 +316,7 @@ func run() int {
 			renderer.Copy(backgroundTexture, nil, fullRect)
 			renderer.Copy(timeTexture, nil, timeRect)
 			renderer.Copy(senseHatTexture, nil, senseRect)
+			renderer.Copy(statTexture, nil, statRect)
 
 			// Destroy textures (not sure if it's needed)
 			timeTexture.Destroy()
@@ -311,6 +334,8 @@ func run() int {
 						//newTexture = newStringTexture(strconv.Itoa(int(t.Unix())), renderer)
 						senseHatTexture.Destroy()
 						senseHatTexture, senseRect = getSenseHatTexture(renderer)
+						statTexture.Destroy()
+						statTexture, statRect = getStatTexture(renderer)
 					})
 					//fmt.Println("Tick at", t)
 				}
