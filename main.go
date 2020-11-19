@@ -206,14 +206,13 @@ func bToMb(b uint64) uint64 {
 	return b / 1024 / 1024
 }
 
-func getDaysSinceTexture(renderer *sdl.Renderer) (*sdl.Texture, *sdl.Rect) {
+func getDaysSinceTexture(renderer *sdl.Renderer) {
 	originalDate := time.Date(2019, time.October, 10, 11, 59, 0, 0, time.Local)
 	daysSince := strconv.FormatFloat(time.Since(originalDate).Round(time.Hour).Hours()/24, 'f', 0, 64)
 	daysSurface := newStringSurface(`Days Since Last Seizure:` + daysSince)
-	daysR := rectFromString(lowerCenter, daysSurface, "small")
-	daysT := newTextureFromSurface(renderer, daysSurface)
+	daysSinceRect = rectFromString(lowerCenter, daysSurface, "small")
+	daysSinceTexture = newTextureFromSurface(renderer, daysSurface)
 	daysSurface.Free()
-	return daysT, daysR
 }
 
 func run() int {
