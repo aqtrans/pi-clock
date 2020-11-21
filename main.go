@@ -167,6 +167,7 @@ func getSenseHatTexture(renderer *sdl.Renderer) {
 	resp, err := http.Get("http://raspberrypi.lan:8000/")
 	if err != nil {
 		log.Println("Error getting sense hat info:", err)
+		return
 		//return nil, nil
 	}
 	defer resp.Body.Close()
@@ -174,6 +175,7 @@ func getSenseHatTexture(renderer *sdl.Renderer) {
 	err = json.Unmarshal(body, &senseData)
 	if err != nil {
 		log.Println("Error unmarshaling sense hat JSON:", err)
+		return
 		//return nil, nil
 	}
 
