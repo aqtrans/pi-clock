@@ -53,6 +53,7 @@ var (
 	daysSinceRect     *sdl.Rect
 	timeTexture       *sdl.Texture
 	timeRect          *sdl.Rect
+	senseHatServer    string
 )
 
 const (
@@ -164,7 +165,7 @@ func rectFromString(pos string, newSurface *sdl.Surface, size string) *sdl.Rect 
 
 func getSenseHatTexture(renderer *sdl.Renderer) {
 	var senseData senseHatResponse
-	resp, err := http.Get("http://raspberrypi.lan:8000/")
+	resp, err := http.Get(senseHatServer)
 	if err != nil {
 		log.Println("Error getting sense hat info:", err)
 		return
@@ -380,6 +381,7 @@ func run() int {
 func main() {
 	flag.StringVar(&backgroundImage, "bg", "bg.png", "Background image. PNG")
 	flag.StringVar(&fontFile, "font", "sans.ttf", "Font file. TTF")
+	flag.StringVar(&senseHatServer, "url", "http://127.0.0.1:8000/", "URL of the Sense Hat server.")
 
 	flag.Parse()
 
