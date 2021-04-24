@@ -4,7 +4,7 @@ pipeline {
     }
 
     environment { 
-        PATH+EXTRA = "/usr/local/go/bin"
+        PATH+EXTRA="/usr/local/go/bin"
     }
 
     stages {     
