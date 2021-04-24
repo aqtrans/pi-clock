@@ -2,9 +2,7 @@ pipeline {
     agent {
         docker { image 'rpi-chroot' }
     }
-    tools {
-        go 'go-latest'
-    }
+
     stages {     
         stage('Get Deps') {
             steps {
