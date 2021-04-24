@@ -3,6 +3,7 @@ name: clock
 
 steps:
 - name: get deps
+  pull: never
   image: rpi-chroot
   volumes:
     - name: deps
@@ -11,6 +12,7 @@ steps:
     - go get -d
 
 - name: test
+  pull: never
   image: rpi-chroot
   volumes:
     - name: deps
@@ -22,6 +24,7 @@ steps:
     - go test -bench=.
 
 - name: build
+  pull: never
   image: rpi-chroot
   volumes:
     - name: deps
