@@ -3,7 +3,7 @@ name: clock
 
 steps:
 - name: get deps
-  image: golang
+  image: rpi-chroot
   volumes:
     - name: deps
       path: /go
@@ -11,7 +11,7 @@ steps:
     - go get -d
 
 - name: test
-  image: golang
+  image: rpi-chroot
   volumes:
     - name: deps
       path: /go
@@ -22,7 +22,7 @@ steps:
     - go test -bench=.
 
 - name: build
-  image: golang
+  image: rpi-chroot
   volumes:
     - name: deps
       path: /go
