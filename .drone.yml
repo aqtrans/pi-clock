@@ -11,10 +11,12 @@ server:
 steps:
 - name: get deps
   commands:
+    - export PATH=$PATH:/usr/local/go/bin
     - go get -d
 
 - name: test
-  commands:      
+  commands:     
+    - export PATH=$PATH:/usr/local/go/bin   
     - go test
     - go test -race
     - go test -cover
@@ -22,9 +24,15 @@ steps:
 
 - name: build
   commands:
+    - export PATH=$PATH:/usr/local/go/bin  
     - go build
 
 - name: deploy
+  image: alpine
+  environment:
+    DEPLOY_HOST: 'pi@clock.lan'
+    SSH_KEY:
+      from_secret: ssh_key
   commands:      
   - cp ./sdl-clock /home/pi/sdl-clock/sdl-clock
   - sudo systemctl restart clockgo.service
