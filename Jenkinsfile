@@ -3,6 +3,10 @@ pipeline {
         docker { image 'rpi-chroot' }
     }
 
+    environment { 
+        PATH = '$PATH:/usr/local/go/bin'
+    }
+
     stages {     
         stage('Get Deps') {
             steps {
