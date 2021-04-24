@@ -1,22 +1,19 @@
 kind: pipeline
 name: clock
+type: ssh
+
+server:
+  host: clock.lan
+  user: pi
+  ssh_key:
+    from_secret: ssh_key
 
 steps:
 - name: get deps
-  pull: never
-  image: rpi-chroot
-  volumes:
-    - name: deps
-      path: /go
   commands:
     - go get -d
 
 - name: test
-  pull: never
-  image: rpi-chroot
-  volumes:
-    - name: deps
-      path: /go
   commands:      
     - go test
     - go test -race
@@ -24,29 +21,13 @@ steps:
     - go test -bench=.
 
 - name: build
-  pull: never
-  image: rpi-chroot
-  volumes:
-    - name: deps
-      path: /go
   commands:
     - go build
 
 - name: deploy
-  image: alpine
-  environment:
-    DEPLOY_HOST: 'pi@clock.lan'
-    SSH_KEY:
-      from_secret: ssh_key
   commands:      
-  - mkdir $HOME/.ssh
-  - echo "$SSH_KEY" > $HOME/.ssh/id_ed25519
-  - chmod 600 $HOME/.ssh/id_ed25519
-  - apk add --no-cache openssh
-  - ssh-keyscan -H bob.jba.io > $HOME/.ssh/known_hosts  
-  - ssh-keyscan -H git.jba.io >> $HOME/.ssh/known_hosts 
-  - scp sdl-clock $DEPLOY_HOST:/home/pi/sdl-clock/
-  - ssh $DEPLOY_HOST sudo systemctl restart clockgo.service
+  - cp ./sdl-clock /home/pi/sdl-clock/sdl-clock
+  - sudo systemctl restart clockgo.service
 
 - name: notify
   image: plugins/pushover
@@ -59,7 +40,4 @@ steps:
     status:
     - success
     - failure
-
-volumes:
-  - name: deps
-    temp: {}  
+ 
