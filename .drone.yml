@@ -12,6 +12,7 @@ steps:
 - name: get deps
   commands:
     - export PATH=$PATH:/usr/local/go/bin
+    - export GOPATH=/home/pi/go
     - go get -d
 
 #- name: test
@@ -23,7 +24,8 @@ steps:
 
 - name: build
   commands:
-    - export PATH=$PATH:/usr/local/go/bin  
+    - export PATH=$PATH:/usr/local/go/bin
+    - export GOPATH=/home/pi/go  
     - go build
 
 - name: deploy
