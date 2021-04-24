@@ -14,12 +14,12 @@ steps:
     - export PATH=$PATH:/usr/local/go/bin
     - go get -d
 
-- name: test
-  commands:     
-    - export PATH=$PATH:/usr/local/go/bin   
-    - go test
-    - go test -cover
-    - go test -bench=.
+#- name: test
+#  commands:     
+#    - export PATH=$PATH:/usr/local/go/bin   
+#    - go test
+#    - go test -cover
+#    - go test -bench=.
 
 - name: build
   commands:
@@ -27,9 +27,10 @@ steps:
     - go build
 
 - name: deploy
-  commands:      
+  commands:    
+  - sudo systemctl stop clockgo.service  
   - cp ./sdl-clock /home/pi/sdl-clock/sdl-clock
-  - sudo systemctl restart clockgo.service
+  - sudo systemctl start clockgo.service
 
 - name: notify
   image: plugins/pushover
