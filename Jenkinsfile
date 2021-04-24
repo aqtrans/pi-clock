@@ -4,9 +4,9 @@ pipeline {
     }
 
     environment { 
-        PATH+EXTRA="/usr/local/go/bin"
+        PATH="${PATH}:/usr/local/go/bin"
     }
-
+    
     stages {     
         stage('Get Deps') {
             steps {
