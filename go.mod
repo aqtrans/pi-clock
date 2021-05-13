@@ -1,5 +1,5 @@
 module git.jba.io/go/sdl-clock
 
-go 1.15
+go 1.16
 
-require github.com/veandco/go-sdl2 v0.4.4
+require github.com/veandco/go-sdl2 v0.4.7
