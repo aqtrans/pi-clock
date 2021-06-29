@@ -120,6 +120,17 @@ func rectFromString(pos string, newSurface *sdl.Surface, size string) *sdl.Rect 
 		surfaceWidth = surfaceWidth * 2
 	}
 
+	if size == "medium" {
+		surfaceHeightF := float64(surfaceHeight)
+		surfaceWidthF := float64(surfaceWidth)
+
+		surfaceHeightF = surfaceHeightF / 1.25
+		surfaceWidthF = surfaceWidthF / 1.25
+
+		surfaceHeight = int32(surfaceHeightF)
+		surfaceWidth = int32(surfaceWidthF)
+	}
+
 	if size == "small" {
 		surfaceHeight = surfaceHeight / 2
 		surfaceWidth = surfaceWidth / 2
@@ -213,7 +224,7 @@ func getDaysSinceTexture(renderer *sdl.Renderer) {
 	originalDate := time.Date(2019, time.October, 10, 11, 59, 0, 0, time.Local)
 	daysSince := strconv.FormatFloat(time.Since(originalDate).Round(time.Hour).Hours()/24, 'f', 0, 64)
 	daysSurface := newStringSurface(`Days Since Last Seizure:` + daysSince)
-	daysSinceRect = rectFromString(lowerCenter, daysSurface, "small")
+	daysSinceRect = rectFromString(lowerCenter, daysSurface, "medium")
 	daysSinceTexture = newTextureFromSurface(renderer, daysSurface)
 	daysSurface.Free()
 }
