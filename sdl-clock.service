@@ -1,0 +1,12 @@
+[Unit]
+Description=Golang clock daemon
+
+[Service]
+Environment=SDL_VIDEODRIVER=KMSDRM
+WorkingDirectory=/home/sdl-clock/clock
+ExecStart=/home/sdl-clock/clock/sdl-clock
+User=sdl-clock
+Restart=no
+
+[Install]
+WantedBy=default.target
