@@ -1,0 +1,117 @@
+---
+
+- name: Build and deploy sdl-clock
+  connection: ssh
+  gather_facts: false
+  hosts: clock
+  become: yes
+  become_user: root
+
+  vars:
+    ansible_shell_allow_world_readable_temp: true  
+
+  tasks:
+    - name: create app group
+      group:
+        name: sdl-clock
+        state: present
+
+    - name: create app user
+      user:
+        name: sdl-clock
+        groups: sdl-clock
+        shell: /usr/sbin/nologin
+        append: yes
+        state: present
+        create_home: yes
+        groups:
+          - video
+
+    - name: create build dir
+      file:
+        path: /home/sdl-clock/build
+        state: directory
+        owner: sdl-clock
+        group: sdl-clock
+        mode: 0755
+
+    - name: create clock dir
+      file:
+        path: /home/sdl-clock/clock
+        state: directory
+        owner: sdl-clock
+        group: sdl-clock
+        mode: 0755
+
+    #- name: Copy files to build directory
+    #  become: yes
+    #  become_user: sdl-clock
+    #  synchronize:
+    #    delete: yes
+    #    src: ./
+    #    dest: /home/sdl-clock/build
+
+    - name: copy go.mod to build dir on server
+      copy:
+        src: go.mod
+        dest: /home/sdl-clock/build/go.mod
+        mode: 0755
+        owner: sdl-clock
+        group: sdl-clock
+        
+    - name: copy go.sum to build dir on server
+      copy:
+        src: go.sum
+        dest: /home/sdl-clock/build/go.sum
+        mode: 0755
+        owner: sdl-clock
+        group: sdl-clock
+        
+    - name: copy main.go to build dir on server
+      copy:
+        src: main.go
+        dest: /home/sdl-clock/build/main.go
+        mode: 0755
+        owner: sdl-clock
+        group: sdl-clock
+
+    - name: copy font to clock dir on server
+      copy:
+        src: sans.ttf
+        dest: /home/sdl-clock/clock/sans.ttf
+        mode: 0755
+        owner: sdl-clock
+        group: sdl-clock
+
+    - name: copy background to clock dir on server
+      copy:
+        src: bg.png
+        dest: /home/sdl-clock/clock/bg.png
+        mode: 0755
+        owner: sdl-clock
+        group: sdl-clock   
+
+    - name: copy systemd service file to server
+      copy:
+        src: sdl-clock.service
+        dest: /etc/systemd/system/sdl-clock.service
+        owner: root
+        group: root
+
+    - name: build app on target
+      #become: yes
+      #become_user: sdl-clock
+      #become_flags: '-s /bin/sh'    
+      command: su - sdl-clock -s /bin/sh -c 'cd build && go build -v -o /home/sdl-clock/clock/sdl-clock'
+      #args:
+      #  chdir: /home/sdl-clock/build
+      notify:
+        - Restart app
+
+  handlers:
+    - name: Restart app
+      systemd:
+        name: sdl-clock
+        state: restarted
+        daemon-reload: yes
+        enabled: yes
