@@ -382,6 +382,10 @@ func run() int {
 
 		sdl.Do(func() {
 			renderer.Present()
+		})
+
+		sdl.Do(func() {
+			sdl.PollEvent()
 			sdl.Delay(100)
 		})
 	}
