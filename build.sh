@@ -30,9 +30,9 @@ tar -C /usr/local -xzf go1.22.1.linux-armv6l.tar.gz &&
 
 ## Compile
 go get -v &&
-#go build -v -o sdl-clock &&
+go build -v -o sdl-clock &&
 
-#go version &&
+go version &&
 
 ## Put into place and restart
 systemctl stop sdl-clock &&
