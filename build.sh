@@ -28,12 +28,13 @@ set -e
 ##rm -rf /usr/local/go &&
 ##tar -C /usr/local -xzf go1.22.1.linux-armv6l.tar.gz &&
 
-## Compile
-#cd sdl-clock
-go get -v
-go build -v -o sdl-clock &&
+cd /home/deploy/pi-clock/
 
-go version &&
+## Compile
+go get -v
+go build -v -o sdl-clock
+
+go version
 
 ## Put into place and restart
 systemctl stop sdl-clock
@@ -41,3 +42,4 @@ cd ./sdl-clock/
 cp ./sdl-clock /home/sdl-clock/clock/sdl-clock
 chown sdl-clock: /home/sdl-clock/clock/sdl-clock
 systemctl restart sdl-clock
+systemctl status sdl-clock

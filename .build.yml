@@ -1,6 +1,8 @@
 image: alpine/latest
 secrets:
   - 9ef6e07e-cae5-4ec0-b799-8898de1f742b
+packages:
+  - rsync
 sources:
   - ssh://git@git.sr.ht/~aqtrans/pi-clock
 tasks:
@@ -9,5 +11,5 @@ tasks:
       echo -e "Host B\n         StrictHostKeyChecking no\n    UserKnownHostsFile=/dev/null\n    hostname dev.squanch.space\n    User deploy\n" >> ~/.ssh/config
       echo -e "Host C\n         StrictHostKeyChecking no\n    UserKnownHostsFile=/dev/null\n    hostname clock.lan\n     ProxyJump B\n" >> ~/.ssh/config
       sshopts="ssh -o StrictHostKeyChecking=no"
-      rsync --rsh="$sshopts" -rP , deploy@C:pi-clock
-      ssh deploy@C "/bin/bash /home/deploy/pi-clock/build.sh"
+      rsync --rsh="$sshopts" -rP ./ deploy@C:pi-clock
+      ssh deploy@C "sudo /bin/bash /home/deploy/pi-clock/build.sh"
