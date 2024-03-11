@@ -38,7 +38,6 @@ go version
 
 ## Put into place and restart
 systemctl stop sdl-clock
-cd ./sdl-clock/
 cp ./sdl-clock /home/sdl-clock/clock/sdl-clock
 chown sdl-clock: /home/sdl-clock/clock/sdl-clock
 systemctl restart sdl-clock
