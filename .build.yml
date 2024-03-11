@@ -10,5 +10,5 @@ tasks:
       echo -e "Host C\n         StrictHostKeyChecking no\n    UserKnownHostsFile=/dev/null\n    hostname clock.lan\n     ProxyJump B\n" >> ~/.ssh/config
       ssh deploy@C "ls"
       scp -r . deploy@C:pi-clock
-      ssh deploy@C "cd ./pi-clock
+      ssh deploy@C "cd ./pi-clock"
       ssh deploy@C "sudo ./build.sh"
