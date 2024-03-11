@@ -1,0 +1,13 @@
+image: alpine/latest
+secrets:
+  - 9ef6e07e-cae5-4ec0-b799-8898de1f742b
+sources:
+  - ssh://git@git.sr.ht/~aqtrans/pi-clock
+tasks:
+  - deploy: |
+      cd pi-clock
+      echo -e "Host B\n         StrictHostKeyChecking no\n    UserKnownHostsFile=/dev/null\n    hostname dev.squanch.space\n    User deploy\n" >> ~/.ssh/config
+      echo -e "Host C\n         StrictHostKeyChecking no\n    UserKnownHostsFile=/dev/null\n    hostname clock.lan\n     ProxyJump B\n" >> ~/.ssh/config
+      ssh deploy@C "ls"
+      scp -r . deploy@C:pi-clock
+      ssh deploy@C "./pi-clock/build.sh"
