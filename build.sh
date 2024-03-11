@@ -1,4 +1,4 @@
-q#!/bin/bash
+#!/bin/bash
 
 export PATH=$PATH:/usr/local/go/bin
 
@@ -29,7 +29,7 @@ set -e
 ##tar -C /usr/local -xzf go1.22.1.linux-armv6l.tar.gz &&
 
 ## Compile
-cd sdl-clock
+#cd sdl-clock
 go get -v
 go build -v -o sdl-clock &&
 
