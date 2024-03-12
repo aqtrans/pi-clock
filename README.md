@@ -16,7 +16,7 @@ and `sense-hat-server.py`, configured properly (one of the TODOs is to make thes
 it will show the Temperature, Pressure, and Humidity values from the SenseHat.
 
 ## Screenshot:  
-![Screenshot of the clock in action](/screenshot.png)
+![Screenshot of the clock in action](/screenshot.jpg)
 
 
 ## Todos:  
