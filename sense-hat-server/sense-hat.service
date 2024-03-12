@@ -1,0 +1,10 @@
+[Unit]
+Description=Sense Hat JSON server
+
+[Service]
+ExecStart=/usr/bin/python3 /home/pi/sense-hat-server/sense-hat_server.py
+User=pi
+Restart=no
+
+[Install]
+WantedBy=default.target
